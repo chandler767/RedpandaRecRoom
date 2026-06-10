@@ -1,4 +1,4 @@
 config.local.yaml
 .superpowers/
-run
-serve
+/run
+/serve
