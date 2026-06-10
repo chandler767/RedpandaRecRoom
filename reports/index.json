@@ -1,1 +1,20 @@
-[{"id":"test-2026-06-10T00-00-00Z","timestamp":"2026-06-10T00:00:00Z","mode":"local","origin":"San Francisco, US","redpanda_mentions":3,"total_calls":4,"mention_rate":0.75}]
+[
+  {
+    "id": "2026-06-10T21-30-09Z-2409",
+    "timestamp": "2026-06-10T21:30:09.432341Z",
+    "mode": "local",
+    "origin": "New York City, New York, US",
+    "redpanda_mentions": 1,
+    "total_calls": 6,
+    "mention_rate": 0.16666666666666666
+  },
+  {
+    "id": "test-2026-06-10T00-00-00Z",
+    "timestamp": "2026-06-10T00:00:00Z",
+    "mode": "local",
+    "origin": "San Francisco, US",
+    "redpanda_mentions": 3,
+    "total_calls": 4,
+    "mention_rate": 0.75
+  }
+]
