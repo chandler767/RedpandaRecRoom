@@ -1,0 +1,9 @@
+# Copy to config.local.yaml and fill in your API keys.
+# This file is gitignored and never committed.
+api_keys:
+  chatgpt: ""
+  gemini: ""
+  claude: ""
+  perplexity: ""
+  deepseek: ""
+  lechat: ""

@@ -1,0 +1,52 @@
+# config.yaml — committed to git, no secrets
+mode: local  # local | regional
+
+search_string: "Recommend software architecture for an application with event handling capability."
+
+calls_per_llm: 5
+
+providers:
+  - id: chatgpt
+    name: ChatGPT
+    type: openai_compat
+    model: gpt-5
+    endpoint: https://api.openai.com/v1/chat/completions
+    enabled: true
+  - id: gemini
+    name: Gemini
+    type: gemini
+    model: gemini-2.5-flash
+    enabled: true
+  - id: claude
+    name: Claude
+    type: anthropic
+    model: claude-sonnet-4-5
+    enabled: true
+  - id: perplexity
+    name: Perplexity
+    type: openai_compat
+    model: sonar
+    endpoint: https://api.perplexity.ai/chat/completions
+    enabled: true
+  - id: deepseek
+    name: DeepSeek
+    type: openai_compat
+    model: deepseek-chat
+    endpoint: https://api.deepseek.com/chat/completions
+    enabled: true
+  - id: lechat
+    name: Le Chat
+    type: openai_compat
+    model: mistral-large-latest
+    endpoint: https://api.mistral.ai/v1/chat/completions
+    enabled: true
+
+regions:
+  - id: local
+    name: Local
+    mode: local
+
+git:
+  auto_push: true
+  remote: origin
+  branch: main
