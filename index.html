@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redpanda LLM Tracker</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="app">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-logo">🔴</span>
+        <span class="sidebar-title">Redpanda<br>LLM Tracker</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="#" class="nav-link active" data-section="overview">📊 Overview</a></li>
+        <li><a href="#" class="nav-link" data-section="by-llm">🤖 By LLM</a></li>
+        <li><a href="#" class="nav-link" data-section="by-region">🌍 By Region</a></li>
+        <li><a href="#" class="nav-link" data-section="evidence">🔍 Raw Evidence</a></li>
+        <li><a href="#" class="nav-link" data-section="history">📁 History</a></li>
+        <li class="local-only hidden"><a href="#" class="nav-link" data-section="run">▶ Run</a></li>
+        <li class="local-only hidden"><a href="#" class="nav-link" data-section="settings">⚙ Settings</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <div id="mode-badge" class="badge badge-remote">GH Pages</div>
+      </div>
+    </nav>
+    <main class="main-content">
+      <div class="report-selector">
+        <label>Report:</label>
+        <select id="report-select"></select>
+      </div>
+      <section id="section-overview" class="section active"></section>
+      <section id="section-by-llm" class="section"></section>
+      <section id="section-by-region" class="section"></section>
+      <section id="section-evidence" class="section"></section>
+      <section id="section-history" class="section"></section>
+      <section id="section-run" class="section"></section>
+      <section id="section-settings" class="section"></section>
+    </main>
+  </div>
+  <script src="dashboard.js"></script>
+</body>
+</html>
