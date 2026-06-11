@@ -1,5 +1,14 @@
 [
   {
+    "id": "2026-06-11T13-53-48Z-7753",
+    "timestamp": "2026-06-11T13:53:48.559826Z",
+    "mode": "local",
+    "origin": "New York City, New York, US",
+    "redpanda_mentions": 0,
+    "total_calls": 6,
+    "mention_rate": 0
+  },
+  {
     "id": "2026-06-11T13-28-50Z-9878",
     "timestamp": "2026-06-11T13:28:50.612004Z",
     "mode": "local",
