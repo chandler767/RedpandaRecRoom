@@ -4,6 +4,7 @@
 const LOCAL_API = 'http://localhost:8765';
 let currentReport = null;
 let isLocal = false;
+let activeRunES = null; // non-null while a run's SSE stream is open
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ async function detectLocalMode() {
 
 async function loadReportIndex() {
   try {
-    const res = await fetch('reports/index.json');
+    const res = await fetch('reports/index.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const index = await res.json();
     populateSelector(index);
@@ -67,7 +68,7 @@ function populateSelector(index) {
 async function loadReport(id) {
   document.getElementById('new-report-banner').classList.add('hidden');
   try {
-    const res = await fetch(`reports/${id}.json`);
+    const res = await fetch(`reports/${id}.json`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     currentReport = await res.json();
     renderCurrent();
@@ -375,6 +376,7 @@ function dlMd(id) {
 
 function renderRun() {
   if (!isLocal) return;
+  if (activeRunES) return; // run in progress — leave the live log alone
   const el = document.getElementById('section-run');
   el.innerHTML = `
     <h2 class="section-title">Run Experiment</h2>
@@ -413,19 +415,30 @@ function startRun() {
     })
     .then(() => {
       const es = new EventSource(`${LOCAL_API}/api/run/stream`);
+      activeRunES = es;
+      const closeRun = () => {
+        es.close();
+        activeRunES = null;
+        document.getElementById('run-btn').disabled = false;
+      };
       es.onmessage = e => {
         const div = document.createElement('div');
         div.className = 'log-line';
         div.textContent = e.data;
         log.appendChild(div);
         log.scrollTop = log.scrollHeight;
-        if (e.data.startsWith('COMPLETE:')) notifyNewReport(e.data.slice('COMPLETE:'.length));
-        if (e.data.startsWith('COMPLETE:') || e.data === '[DONE]') {
-          es.close();
-          document.getElementById('run-btn').disabled = false;
+        if (e.data.startsWith('COMPLETE:')) {
+          const sel = document.getElementById('report-select');
+          if (sel.selectedIndex > 0) {
+            // User is browsing an older report — show banner instead of auto-jumping them
+            notifyNewReport(e.data.slice('COMPLETE:'.length));
+          } else {
+            loadReportIndex();
+          }
         }
+        if (e.data.startsWith('COMPLETE:') || e.data === '[DONE]') closeRun();
       };
-      es.onerror = () => { es.close(); document.getElementById('run-btn').disabled = false; };
+      es.onerror = () => closeRun();
     })
     .catch(() => { document.getElementById('run-btn').disabled = false; });
 }
