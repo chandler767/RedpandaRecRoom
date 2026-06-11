@@ -321,7 +321,7 @@ function renderHistory() {
     <p class="section-sub">All past reports</p>
     <div id="hist-list" class="loading">Loading…</div>
   `;
-  fetch('reports/index.json')
+  fetch('reports/index.json', { cache: 'no-store' })
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(index => {
       document.getElementById('hist-list').innerHTML = !index.length
