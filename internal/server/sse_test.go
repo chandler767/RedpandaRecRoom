@@ -10,6 +10,19 @@ import (
 	"github.com/chandler767/redpanda-rec-room/internal/server"
 )
 
+// waitSubscribers blocks until the broker has at least n subscribers or the deadline passes.
+func waitSubscribers(t *testing.T, b *server.SSEBroker, n int) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if b.SubscriberCount() >= n {
+			return
+		}
+		time.Sleep(1 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for %d subscriber(s)", n)
+}
+
 func TestSSEBroker_PublishAndClose(t *testing.T) {
 	broker := server.NewSSEBroker()
 
@@ -22,7 +35,7 @@ func TestSSEBroker_PublishAndClose(t *testing.T) {
 		broker.ServeHTTP(rec, req)
 	}()
 
-	time.Sleep(20 * time.Millisecond)
+	waitSubscribers(t, broker, 1)
 	broker.Publish("hello world")
 	broker.Close()
 

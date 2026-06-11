@@ -100,7 +100,7 @@ func main() {
 	fmt.Printf("Saved: reports/%s.json\n", report.ID)
 
 	if cfg.Git.AutoPush {
-		if err := git.AddCommitPush(repoDir, "reports/", report.ID, false); err != nil {
+		if err := git.AddCommitPush(repoDir, "reports/", report.ID, cfg.Git.Remote, cfg.Git.Branch, false); err != nil {
 			log.Fatalf("git push: %v", err)
 		}
 		fmt.Println("Pushed to GitHub")

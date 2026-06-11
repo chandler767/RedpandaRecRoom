@@ -4,6 +4,7 @@ package schedule
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -40,8 +41,8 @@ var plistTmpl = template.Must(template.New("plist").Parse(`<?xml version="1.0" e
 func InstallAt(binaryPath, plistPath string) error {
 	var buf bytes.Buffer
 	if err := plistTmpl.Execute(&buf, map[string]string{
-		"Label":      plistLabel,
-		"BinaryPath": binaryPath,
+		"Label":      html.EscapeString(plistLabel),
+		"BinaryPath": html.EscapeString(binaryPath),
 	}); err != nil {
 		return err
 	}
@@ -50,7 +51,11 @@ func InstallAt(binaryPath, plistPath string) error {
 
 // Install writes the plist to ~/Library/LaunchAgents/ and loads it.
 func Install(binaryPath string) error {
-	plistPath := filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", plistLabel+".plist")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	plistPath := filepath.Join(home, "Library", "LaunchAgents", plistLabel+".plist")
 	if err := InstallAt(binaryPath, plistPath); err != nil {
 		return err
 	}
@@ -59,7 +64,11 @@ func Install(binaryPath string) error {
 
 // Uninstall unloads and removes the plist.
 func Uninstall() error {
-	plistPath := filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", plistLabel+".plist")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	plistPath := filepath.Join(home, "Library", "LaunchAgents", plistLabel+".plist")
 	exec.Command("launchctl", "unload", plistPath).Run() // ignore — may not be loaded
 	if err := os.Remove(plistPath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("remove plist: %w", err)

@@ -3,16 +3,20 @@ package server
 
 import (
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/chandler767/redpanda-rec-room/internal/config"
 )
 
 // Server is the local HTTP API server for the dashboard.
 type Server struct {
-	cfg     *config.Config
-	repoDir string
-	mux     *http.ServeMux
-	broker  *SSEBroker
+	cfg      *config.Config
+	repoDir  string
+	mux      *http.ServeMux
+	broker   *SSEBroker
+	brokerMu sync.RWMutex
+	runMu    sync.Mutex
 }
 
 // New creates a Server. cfg may be nil (status endpoint still works).
@@ -29,6 +33,14 @@ func New(cfg *config.Config, repoDir string) *Server {
 	s.mux.HandleFunc("/api/run/stream", s.handleRunStream)
 	s.mux.HandleFunc("/api/schedule", s.handleSchedule)
 	if repoDir != "" {
+		// Block sensitive files before the catch-all file server.
+		block := func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "not found", http.StatusNotFound)
+		}
+		s.mux.HandleFunc("/config.local.yaml", block)
+		s.mux.HandleFunc("/.git/", block)
+		s.mux.HandleFunc("/internal/", block)
+		s.mux.HandleFunc("/cmd/", block)
 		s.mux.Handle("/", http.FileServer(http.Dir(repoDir)))
 	}
 	return s
@@ -48,5 +60,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Start listens on addr (e.g. ":8765").
 func (s *Server) Start(addr string) error {
-	return http.ListenAndServe(addr, s)
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           s,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      0, // 0 = no write timeout; required for SSE long-poll streams
+		IdleTimeout:       120 * time.Second,
+	}
+	return srv.ListenAndServe()
 }

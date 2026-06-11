@@ -7,13 +7,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 
 	"github.com/chandler767/redpanda-rec-room/internal/runner"
 )
 
-// AddCommitPush stages path, commits with message, and pushes.
+// indexMu serializes read-modify-write access to index.json within the same process.
+var indexMu sync.Mutex
+
+// AddCommitPush stages path, commits with message, and pushes to remote/branch.
 // dryRun=true commits but does not push.
-func AddCommitPush(repoDir, path, message string, dryRun bool) error {
+func AddCommitPush(repoDir, path, message, remote, branch string, dryRun bool) error {
 	run := func(args ...string) error {
 		cmd := exec.Command("git", args...)
 		cmd.Dir = repoDir
@@ -33,11 +37,14 @@ func AddCommitPush(repoDir, path, message string, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
-	return run("push")
+	return run("push", remote, branch)
 }
 
 // SaveReport writes report JSON to reports/{id}.json and prepends to reports/index.json.
+// indexMu serializes in-process callers; cross-process collisions remain a known limitation.
 func SaveReport(repoDir string, report *runner.Report) error {
+	indexMu.Lock()
+	defer indexMu.Unlock()
 	reportsDir := filepath.Join(repoDir, "reports")
 	if err := os.MkdirAll(reportsDir, 0755); err != nil {
 		return err
@@ -54,7 +61,9 @@ func SaveReport(repoDir string, report *runner.Report) error {
 	indexPath := filepath.Join(reportsDir, "index.json")
 	var index []runner.IndexEntry
 	if existing, err := os.ReadFile(indexPath); err == nil {
-		json.Unmarshal(existing, &index)
+		if err := json.Unmarshal(existing, &index); err != nil {
+			return fmt.Errorf("parse index.json: %w", err)
+		}
 	}
 
 	entry := runner.IndexEntry{

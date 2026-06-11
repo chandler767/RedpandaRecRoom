@@ -25,7 +25,7 @@ func Run(ctx context.Context, cfg *config.Config, clients map[string]llm.Client,
 	}
 
 	now := time.Now().UTC()
-	id := now.Format("2006-01-02T15-04-05Z")
+	id := fmt.Sprintf("%s-%04d", now.Format("2006-01-02T15-04-05Z"), rand.Intn(10000))
 	variants := prompt.BuildVariants(cfg.SearchString)
 
 	var (
@@ -174,6 +174,9 @@ func assembleReport(id string, now time.Time, cfg *config.Config, geoInfo geo.In
 		pct := 0.0
 		if r.Summary.Completed > 0 {
 			pct = float64(v) / float64(r.Summary.Completed)
+			if pct > 1.0 {
+				pct = 1.0 // "Other" is an aggregate and can exceed individual call count
+			}
 		}
 		r.StackDist[k] = StackCount{Count: v, Pct: pct}
 	}

@@ -28,7 +28,7 @@ func TestAddCommitPush_DryRun(t *testing.T) {
 	os.MkdirAll(reportsDir, 0755)
 	os.WriteFile(filepath.Join(reportsDir, "test.json"), []byte(`{"id":"test"}`), 0644)
 
-	err := git.AddCommitPush(dir, "reports/", "test", true)
+	err := git.AddCommitPush(dir, "reports/", "test", "origin", "main", true)
 	if err != nil {
 		t.Fatalf("AddCommitPush() error: %v", err)
 	}

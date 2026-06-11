@@ -33,10 +33,13 @@ func Locate() (Info, error) {
 func LocateWithURL(url string) (Info, error) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get(url)
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil {
 		return Info{IP: "unknown", Location: "unknown"}, nil
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return Info{IP: "unknown", Location: "unknown"}, nil
+	}
 
 	var r ipinfoResponse
 	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {

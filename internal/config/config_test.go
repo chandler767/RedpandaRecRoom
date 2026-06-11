@@ -72,7 +72,11 @@ func writeTemp(t *testing.T, content string) string {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Remove(f.Name()) })
-	f.WriteString(content)
-	f.Close()
+	if _, err := f.WriteString(content); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
 	return f.Name()
 }

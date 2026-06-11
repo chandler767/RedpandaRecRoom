@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -35,7 +36,7 @@ func NewGemini(baseURL, model, apiKey string) Client {
 }
 
 func (c *geminiClient) Complete(ctx context.Context, prompt string) (Response, error) {
-	url := fmt.Sprintf("%s/%s:generateContent?key=%s", c.baseURL, c.model, c.apiKey)
+	apiURL := fmt.Sprintf("%s/%s:generateContent?key=%s", c.baseURL, c.model, url.QueryEscape(c.apiKey))
 	body, _ := json.Marshal(map[string]any{
 		"contents": []map[string]any{
 			{"parts": []map[string]string{{"text": prompt}}},
@@ -43,7 +44,10 @@ func (c *geminiClient) Complete(ctx context.Context, prompt string) (Response, e
 	})
 
 	start := time.Now()
-	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(body))
+	if err != nil {
+		return Response{}, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.http.Do(req)
@@ -52,7 +56,10 @@ func (c *geminiClient) Complete(ctx context.Context, prompt string) (Response, e
 	}
 	defer resp.Body.Close()
 
-	raw, _ := io.ReadAll(resp.Body)
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return Response{}, fmt.Errorf("read response body: %w", err)
+	}
 	if resp.StatusCode != 200 {
 		return Response{}, fmt.Errorf("HTTP %d: %s", resp.StatusCode, raw)
 	}

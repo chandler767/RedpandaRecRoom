@@ -42,7 +42,10 @@ func (c *anthropicClient) Complete(ctx context.Context, prompt string) (Response
 	})
 
 	start := time.Now()
-	req, _ := http.NewRequestWithContext(ctx, "POST", c.baseURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL, bytes.NewReader(body))
+	if err != nil {
+		return Response{}, err
+	}
 	req.Header.Set("x-api-key", c.apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 	req.Header.Set("Content-Type", "application/json")
@@ -53,7 +56,10 @@ func (c *anthropicClient) Complete(ctx context.Context, prompt string) (Response
 	}
 	defer resp.Body.Close()
 
-	raw, _ := io.ReadAll(resp.Body)
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return Response{}, fmt.Errorf("read response body: %w", err)
+	}
 	if resp.StatusCode != 200 {
 		return Response{}, fmt.Errorf("HTTP %d: %s", resp.StatusCode, raw)
 	}

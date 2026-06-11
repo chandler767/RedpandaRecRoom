@@ -4,6 +4,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -23,7 +24,9 @@ func NewSSEBroker() *SSEBroker {
 }
 
 // Publish sends msg to all connected clients. Drops messages to slow clients.
+// Newlines are replaced with spaces to preserve SSE framing.
 func (b *SSEBroker) Publish(msg string) {
+	msg = strings.NewReplacer("\r\n", " ", "\r", " ", "\n", " ").Replace(msg)
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	for ch := range b.clients {
@@ -32,6 +35,13 @@ func (b *SSEBroker) Publish(msg string) {
 		default:
 		}
 	}
+}
+
+// SubscriberCount returns the number of currently connected SSE clients.
+func (b *SSEBroker) SubscriberCount() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return len(b.clients)
 }
 
 // Close signals all clients to disconnect.

@@ -36,7 +36,7 @@ type Config struct {
 	Providers    []Provider        `yaml:"providers"`
 	Regions      []Region          `yaml:"regions"`
 	Git          GitConfig         `yaml:"git"`
-	APIKeys      map[string]string `yaml:"-"` // from local config only
+	APIKeys      map[string]string `yaml:"-" json:"-"` // from local config only
 }
 
 type localConfig struct {

@@ -28,6 +28,7 @@ async function detectLocalMode() {
 async function loadReportIndex() {
   try {
     const res = await fetch('reports/index.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const index = await res.json();
     populateSelector(index);
     if (index.length > 0) {
@@ -38,12 +39,25 @@ async function loadReportIndex() {
   } catch { showEmpty(); }
 }
 
+function notifyNewReport(id) {
+  const sel = document.getElementById('report-select');
+  const isLatest = sel.options.length > 0 && sel.options[0].value === id;
+  if (!isLatest) {
+    document.getElementById('new-report-banner').classList.remove('hidden');
+  }
+}
+
+async function loadLatestReport() {
+  document.getElementById('new-report-banner').classList.add('hidden');
+  await loadReportIndex();
+}
+
 function populateSelector(index) {
   const sel = document.getElementById('report-select');
   sel.innerHTML = index.map(e =>
-    `<option value="${e.id}">${fmtTs(e.timestamp)} — ${pct(e.mention_rate)}% Redpanda</option>`
+    `<option value="${esc(e.id)}">${fmtTs(e.timestamp)} — ${pct(e.mention_rate)}% Redpanda</option>`
   ).join('');
-  sel.addEventListener('change', () => loadReport(sel.value));
+  sel.onchange = () => loadReport(sel.value);
 
   const params = new URLSearchParams(location.search);
   const id = params.get('report');
@@ -51,8 +65,10 @@ function populateSelector(index) {
 }
 
 async function loadReport(id) {
+  document.getElementById('new-report-banner').classList.add('hidden');
   try {
     const res = await fetch(`reports/${id}.json`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     currentReport = await res.json();
     renderCurrent();
   } catch (e) { console.error('Failed to load report', id, e); }
@@ -101,7 +117,8 @@ function pct(rate) { return Math.round((rate || 0) * 100); }
 function fmtTs(ts) { return new Date(ts).toLocaleString(); }
 function esc(str) {
   return (str || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // ── Overview ───────────────────────────────────────────────────────────────
@@ -111,7 +128,7 @@ function renderOverview() {
   const el = document.getElementById('section-overview');
   el.innerHTML = `
     <h2 class="section-title">Overview</h2>
-    <p class="section-sub">${fmtTs(currentReport.timestamp)} · ${currentReport.origin.detected_location}</p>
+    <p class="section-sub">${fmtTs(currentReport.timestamp)} · ${esc(currentReport.origin.detected_location)}</p>
     <div class="stat-grid">
       <div class="card">
         <div class="card-label">Mention Rate</div>
@@ -126,8 +143,8 @@ function renderOverview() {
       </div>
       <div class="card">
         <div class="card-label">Mode</div>
-        <div class="card-value" style="font-size:18px;padding-top:6px">${currentReport.mode}</div>
-        <div class="card-sub">${currentReport.origin.detected_location}</div>
+        <div class="card-value" style="font-size:18px;padding-top:6px">${esc(currentReport.mode)}</div>
+        <div class="card-sub">${esc(currentReport.origin.detected_location)}</div>
       </div>
     </div>
     <div class="card" style="margin-bottom:20px">
@@ -146,9 +163,9 @@ function buildHeatmap() {
   const llms = currentReport.by_llm;
   let html = `<div class="heatmap" style="grid-template-columns:110px ${regions.map(()=>'1fr').join(' ')}">`;
   html += `<div class="heatmap-cell header"></div>`;
-  regions.forEach(r => { html += `<div class="heatmap-cell header">${r.region}</div>`; });
+  regions.forEach(r => { html += `<div class="heatmap-cell header">${esc(r.region)}</div>`; });
   llms.forEach(l => {
-    html += `<div class="heatmap-cell header" style="text-align:left">${l.provider}</div>`;
+    html += `<div class="heatmap-cell header" style="text-align:left">${esc(l.provider)}</div>`;
     const rate = l.completed > 0 ? l.redpanda_mentions / l.completed : 0;
     const cls = rate >= 0.67 ? 'high' : rate >= 0.34 ? 'medium' : rate > 0 ? 'low' : 'zero';
     html += `<div class="heatmap-cell ${cls}">${pct(rate)}%</div>`;
@@ -167,7 +184,7 @@ function buildStackCensus() {
     const isRP = name === 'Redpanda';
     return `<div style="margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-        <span style="color:${isRP?'var(--accent)':'var(--text)'};font-weight:${isRP?'600':'400'}">${name}</span>
+        <span style="color:${isRP?'var(--accent)':'var(--text)'};font-weight:${isRP?'600':'400'}">${esc(name)}</span>
         <span style="color:var(--muted);font-size:12px">${d.count} (${pct(d.pct)}%)</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${barW}%;background:${isRP?'var(--accent)':'var(--blue)'}"></div></div>
@@ -186,8 +203,8 @@ function renderByLLM() {
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
-            <strong style="font-size:15px">${l.provider}</strong>
-            <span style="color:var(--muted);font-size:12px;margin-left:8px">${l.model}</span>
+            <strong style="font-size:15px">${esc(l.provider)}</strong>
+            <span style="color:var(--muted);font-size:12px;margin-left:8px">${esc(l.model)}</span>
           </div>
           <span style="font-size:24px;font-weight:700;color:var(--accent)">${pct(l.mention_rate)}%</span>
         </div>
@@ -196,7 +213,7 @@ function renderByLLM() {
           ${l.redpanda_mentions} of ${l.completed} calls mentioned Redpanda
           ${l.failed > 0 ? `· <span style="color:var(--accent)">${l.failed} failed</span>` : ''}
         </div>
-        ${l.top_stacks?.length ? `<div class="tags">${l.top_stacks.map(s=>`<span class="tag${s==='Redpanda'?' redpanda':''}">${s}</span>`).join('')}</div>` : ''}
+        ${l.top_stacks?.length ? `<div class="tags">${l.top_stacks.map(s=>`<span class="tag${s==='Redpanda'?' redpanda':''}">${esc(s)}</span>`).join('')}</div>` : ''}
         <details style="margin-top:12px">
           <summary style="cursor:pointer;color:var(--muted);font-size:12px">Show ${l.responses.length} responses</summary>
           <div style="margin-top:10px">
@@ -204,7 +221,7 @@ function renderByLLM() {
               <div style="border-left:2px solid ${r.redpanda_mentioned?'var(--green)':'var(--border)'};padding-left:10px;margin-bottom:12px">
                 <div class="evidence-prompt">${esc(r.prompt)}</div>
                 <div class="evidence-response">${esc(r.response || r.error || '')}</div>
-                <div class="tags">${(r.detected_stacks||[]).map(s=>`<span class="tag${s==='Redpanda'?' redpanda':''}">${s}</span>`).join('')}</div>
+                <div class="tags">${(r.detected_stacks||[]).map(s=>`<span class="tag${s==='Redpanda'?' redpanda':''}">${esc(s)}</span>`).join('')}</div>
               </div>`).join('')}
           </div>
         </details>
@@ -224,8 +241,8 @@ function renderByRegion() {
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div>
-            <strong>${r.region}</strong>
-            <div style="color:var(--muted);font-size:12px">${r.detected_location}</div>
+            <strong>${esc(r.region)}</strong>
+            <div style="color:var(--muted);font-size:12px">${esc(r.detected_location)}</div>
           </div>
           <span style="font-size:24px;font-weight:700;color:var(--accent)">${pct(r.mention_rate)}%</span>
         </div>
@@ -270,7 +287,7 @@ function renderEvidence() {
           </div>
           <div class="evidence-prompt">${esc(r.prompt)}</div>
           <div class="evidence-response">${esc(r.response || r.error || '')}</div>
-          ${r.detected_stacks?.length ? `<div class="tags">${r.detected_stacks.map(s=>`<span class="tag${s==='Redpanda'?' redpanda':''}">${s}</span>`).join('')}</div>` : ''}
+          ${r.detected_stacks?.length ? `<div class="tags">${r.detected_stacks.map(s=>`<span class="tag${s==='Redpanda'?' redpanda':''}">${esc(s)}</span>`).join('')}</div>` : ''}
         </div>`;
     }).join('');
   }
@@ -304,31 +321,32 @@ function renderHistory() {
     <div id="hist-list" class="loading">Loading…</div>
   `;
   fetch('reports/index.json')
-    .then(r => r.json())
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(index => {
       document.getElementById('hist-list').innerHTML = !index.length
         ? '<p style="color:var(--muted)">No reports yet.</p>'
         : index.map(e => `
-          <div class="card" style="cursor:pointer" onclick="loadReport('${e.id}');document.querySelector('[data-section=overview]').click()">
+          <div class="card" style="cursor:pointer" onclick="loadReport('${esc(e.id)}');document.querySelector('[data-section=overview]').click()">
             <div style="display:flex;justify-content:space-between;align-items:center">
               <div>
                 <strong>${fmtTs(e.timestamp)}</strong>
-                <div style="color:var(--muted);font-size:12px">${e.origin} · ${e.total_calls} calls</div>
+                <div style="color:var(--muted);font-size:12px">${esc(e.origin)} · ${e.total_calls} calls</div>
               </div>
               <div style="display:flex;align-items:center;gap:12px">
                 <span style="font-size:20px;font-weight:700;color:var(--accent)">${pct(e.mention_rate)}%</span>
-                <a href="reports/${e.id}.json" download onclick="event.stopPropagation()" style="color:var(--blue);font-size:12px">JSON</a>
-                <a href="#" onclick="event.stopPropagation();dlMd('${e.id}')" style="color:var(--blue);font-size:12px">MD</a>
+                <a href="reports/${esc(e.id)}.json" download onclick="event.stopPropagation()" style="color:var(--blue);font-size:12px">JSON</a>
+                <a href="#" onclick="event.stopPropagation();dlMd('${esc(e.id)}')" style="color:var(--blue);font-size:12px">MD</a>
               </div>
             </div>
           </div>
         `).join('');
-    });
+    })
+    .catch(() => { document.getElementById('hist-list').innerHTML = '<p style="color:var(--muted)">Error loading history.</p>'; });
 }
 
 function dlMd(id) {
   fetch(`reports/${id}.json`)
-    .then(r => r.json())
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(report => {
       const s = report.summary;
       let md = `# Redpanda LLM Tracker\n\n`;
@@ -349,7 +367,8 @@ function dlMd(id) {
       const a = Object.assign(document.createElement('a'), { href: url, download: `redpanda-llm-${id}.md` });
       a.click();
       URL.revokeObjectURL(url);
-    });
+    })
+    .catch(() => { alert('Failed to download report.'); });
 }
 
 // ── Run ───────────────────────────────────────────────────────────────────
@@ -380,8 +399,18 @@ function startRun() {
   document.getElementById('run-progress').style.display = 'block';
   const log = document.getElementById('run-log');
 
-  fetch(`${LOCAL_API}/api/run`, { method: 'POST' })
-    .then(r => r.json())
+  const searchString = document.getElementById('run-prompt')?.value || '';
+  const callsPerLLM = parseInt(document.getElementById('run-calls')?.value, 10) || 5;
+
+  fetch(`${LOCAL_API}/api/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ search_string: searchString, calls_per_llm: callsPerLLM }),
+  })
+    .then(r => {
+      if (!r.ok) return r.text().then(t => { throw new Error(t); });
+      return r.json();
+    })
     .then(() => {
       const es = new EventSource(`${LOCAL_API}/api/run/stream`);
       es.onmessage = e => {
@@ -390,10 +419,10 @@ function startRun() {
         div.textContent = e.data;
         log.appendChild(div);
         log.scrollTop = log.scrollHeight;
+        if (e.data.startsWith('COMPLETE:')) notifyNewReport(e.data.slice('COMPLETE:'.length));
         if (e.data.startsWith('COMPLETE:') || e.data === '[DONE]') {
           es.close();
           document.getElementById('run-btn').disabled = false;
-          if (e.data.startsWith('COMPLETE:')) loadReportIndex();
         }
       };
       es.onerror = () => { es.close(); document.getElementById('run-btn').disabled = false; };
@@ -438,13 +467,16 @@ function setSchedule(action) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action }),
   })
-  .then(r => r.json())
+  .then(r => {
+    if (!r.ok) return r.text().then(t => { throw new Error(t); });
+    return r.json();
+  })
   .then(() => {
     document.getElementById('sched-status').textContent =
       action === 'install' ? '✓ Schedule installed' : '✓ Schedule removed';
   })
-  .catch(() => {
-    document.getElementById('sched-status').textContent = 'Error — check server logs';
+  .catch(err => {
+    document.getElementById('sched-status').textContent = 'Error — ' + (err.message || 'check server logs');
   });
 }
 

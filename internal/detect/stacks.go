@@ -3,7 +3,6 @@ package detect
 
 import (
 	"regexp"
-	"strings"
 )
 
 type bucket struct {
@@ -16,7 +15,7 @@ var buckets = []bucket{
 	{name: "Kafka", re: regexp.MustCompile(`(?i)\bkafka\b`)},
 	{name: "Confluent", re: regexp.MustCompile(`(?i)\bconfluent\b`)},
 	{name: "MSK", re: regexp.MustCompile(`(?i)\b(msk|amazon\s+msk|aws\s+msk)\b`)},
-	{name: "Google Pub/Sub", re: regexp.MustCompile(`(?i)\b(pub[/ -]?sub|google\s+pub)\b`)},
+	{name: "Google Pub/Sub", re: regexp.MustCompile(`(?i)\b(google\s+(cloud\s+)?pub[/\- ]?sub|cloud\s+pub[/\- ]?sub)\b`)},
 	{name: "RabbitMQ", re: regexp.MustCompile(`(?i)\brabbitmq\b`)},
 	{name: "Pulsar", re: regexp.MustCompile(`(?i)\bpulsar\b`)},
 	{name: "NATS", re: regexp.MustCompile(`(?i)\bnats\b`)},
@@ -74,9 +73,8 @@ func TopStacks(dist map[string]int, n int) []string {
 func CollapseSmall(dist map[string]int, total int, minPct float64) map[string]int {
 	result := map[string]int{}
 	otherCount := 0
-	threshold := int(float64(total) * minPct)
 	for k, v := range dist {
-		if v <= threshold {
+		if total == 0 || float64(v)/float64(total) < minPct {
 			otherCount += v
 		} else {
 			result[k] = v
@@ -88,7 +86,13 @@ func CollapseSmall(dist map[string]int, total int, minPct float64) map[string]in
 	return result
 }
 
-// MentionsRedpanda returns true if text contains a Redpanda mention (case-insensitive).
+// MentionsRedpanda returns true if text contains a Redpanda mention.
+// Uses the same word-boundary regex as Stacks() for consistent detection.
 func MentionsRedpanda(text string) bool {
-	return strings.Contains(strings.ToLower(text), "redpanda")
+	for _, name := range Stacks(text) {
+		if name == "Redpanda" {
+			return true
+		}
+	}
+	return false
 }

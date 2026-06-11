@@ -52,7 +52,9 @@ func openBrowser(url string) {
 	default:
 		return
 	}
-	exec.Command(cmd, url).Start()
+	if err := exec.Command(cmd, url).Start(); err != nil {
+		log.Printf("Warning: could not open browser: %v", err)
+	}
 }
 
 func findRepoRoot() (string, error) {
@@ -66,7 +68,7 @@ func findRepoRoot() (string, error) {
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return "", fmt.Errorf("config.yaml not found")
+			return "", fmt.Errorf("config.yaml not found in any parent directory")
 		}
 		dir = parent
 	}

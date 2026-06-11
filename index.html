@@ -27,6 +27,11 @@
       </div>
     </nav>
     <main class="main-content">
+      <div id="new-report-banner" class="new-report-banner hidden">
+        <span>✓ New report ready — you're viewing an older one</span>
+        <button class="btn btn-secondary" style="padding:4px 12px;font-size:12px" onclick="loadLatestReport()">Load latest</button>
+        <button class="banner-close" onclick="document.getElementById('new-report-banner').classList.add('hidden')" title="Dismiss">✕</button>
+      </div>
       <div class="report-selector">
         <label>Report:</label>
         <select id="report-select"></select>
